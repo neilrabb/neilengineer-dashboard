@@ -16,7 +16,7 @@ MAIN_DOMAIN = "https://neilengineer.online"
 WEBSITE_DOMAIN = "https://softwareapp.site"
 
 # GitHub configuration
-GITHUB_REPO = "yourusername/softwareapp-site"  # Replace with your actual GitHub repo
+GITHUB_REPO = "neilrabb/softwareapp-site"  # Your actual GitHub repo
 GITHUB_TOKEN = os.environ.get('GITHUB_TOKEN')  # Your GitHub Personal Access Token
 GITHUB_API_URL = f"https://api.github.com/repos/{GITHUB_REPO}/contents"
 
