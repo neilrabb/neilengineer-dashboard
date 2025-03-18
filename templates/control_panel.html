@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Web Developer Assistant</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            display: flex;
+            gap: 20px;
+        }
+        
+        .control-panel {
+            flex: 1;
+            padding: 20px;
+            background-color: #f5f5f5;
+            border-radius: 8px;
+        }
+        
+        .preview {
+            flex: 1;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        
+        h1 {
+            color: #333;
+        }
+        
+        textarea {
+            width: 100%;
+            min-height: 200px;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+        }
+        
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        
+        button:hover {
+            background-color: #45a049;
+        }
+        
+        #status {
+            margin-top: 20px;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        
+        .loading {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+        
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        
+        iframe {
+            width: 100%;
+            height: 100%;
+            min-height: 500px;
+            border: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="control-panel">
+        <h1>AI Web Developer Assistant</h1>
+        <p>Describe what changes you want to make to your website:</p>
+        <form id="promptForm">
+            <textarea id="promptInput" placeholder="For example: Add a navigation bar with Home, About, and Contact links."></textarea>
+            <button type="submit">Update Website</button>
+        </form>
+        <div id="status"></div>
+    </div>
+    
+    <div class="preview">
+        <h2>Website Preview</h2>
+        <iframe id="websitePreview" src="{{ website_url }}"></iframe>
+    </div>
+
+    <script>
+        document.getElementById('promptForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const prompt = document.getElementById('promptInput').value;
+            const statusDiv = document.getElementById('status');
+            
+            statusDiv.className = 'loading';
+            statusDiv.textContent = 'Processing your request...';
+            
+            // Send the prompt to the server
+            fetch('/submit_prompt', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: new URLSearchParams({
+                    'prompt': prompt
+                })
+            })
+            .then(response => {
+                // First check if the response is actually JSON
+                const contentType = response.headers.get('content-type');
+                if (contentType && contentType.includes('application/json')) {
+                    return response.json().then(data => {
+                        return { ok: response.ok, data };
+                    });
+                } else {
+                    // Handle non-JSON responses (like HTML error pages)
+                    return response.text().then(text => {
+                        return { 
+                            ok: false, 
+                            data: { 
+                                status: 'error',
+                                message: 'Server returned non-JSON response: ' + 
+                                        (text.length > 100 ? text.substring(0, 100) + '...' : text)
+                            } 
+                        };
+                    });
+                }
+            })
+            .then(result => {
+                if (result.ok) {
+                    statusDiv.className = 'success';
+                    statusDiv.textContent = result.data.message;
+                    
+                    // Add a cache-busting parameter to ensure the iframe is refreshed
+                    const cacheBuster = '?t=' + new Date().getTime();
+                    // Refresh the iframe to show the new website
+                    document.getElementById('websitePreview').src = result.data.website_url + cacheBuster;
+                } else {
+                    statusDiv.className = 'error';
+                    statusDiv.textContent = result.data.message;
+                }
+            })
+            .catch(error => {
+                statusDiv.className = 'error';
+                statusDiv.textContent = 'Error: ' + error.message;
+            });
+        });
+    </script>
+</body>
+</html> 
