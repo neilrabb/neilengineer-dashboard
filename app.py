@@ -161,6 +161,49 @@ def submit_prompt():
             "message": f"Error: {str(e)}"
         }), 500
 
+@app.route('/test-api-keys', methods=['GET'])
+def test_api_keys():
+    """Test API keys and connections"""
+    results = {
+        "github_token": {
+            "is_set": bool(GITHUB_TOKEN),
+            "value_preview": GITHUB_TOKEN[:4] + "..." if GITHUB_TOKEN else None
+        },
+        "pplx_api_key": {
+            "is_set": bool(PPLX_API_KEY),
+            "value_preview": PPLX_API_KEY[:4] + "..." if PPLX_API_KEY else None
+        }
+    }
+    
+    # Test GitHub connection if token is set
+    if GITHUB_TOKEN:
+        try:
+            headers = {
+                "Authorization": f"token {GITHUB_TOKEN}",
+                "Accept": "application/vnd.github.v3+json"
+            }
+            response = requests.get("https://api.github.com/user", headers=headers)
+            results["github_api_test"] = {
+                "status_code": response.status_code,
+                "user_login": response.json().get("login") if response.status_code == 200 else None
+            }
+        except Exception as e:
+            results["github_api_test"] = {"error": str(e)}
+    
+    # Test Perplexity API if key is set
+    if PPLX_API_KEY:
+        try:
+            test_llm = ChatPerplexity(model="sonar-small-chat", temperature=0, pplx_api_key=PPLX_API_KEY)
+            response = test_llm.invoke("Say hello")
+            results["pplx_api_test"] = {
+                "success": True,
+                "response_preview": str(response)[:100] + "..." if response else None
+            }
+        except Exception as e:
+            results["pplx_api_test"] = {"error": str(e)}
+    
+    return jsonify(results)
+
 # For Vercel serverless function compatibility
 def handler(event, context):
     return app(event, context)
